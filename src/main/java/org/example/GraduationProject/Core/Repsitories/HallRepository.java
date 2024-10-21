@@ -16,13 +16,13 @@ public interface HallRepository extends JpaRepository<Hall, Long> {
 
 
     @Query(value = "SELECT * FROM halls h " +
-            "WHERE h.isDeleted = 0 " +
-            "AND h.isProcessed = 1 " +
+            "WHERE h.isDeleted = false " +
+            "AND h.isProcessed = true " +
             "AND (:search IS NULL OR LOWER(h.name) LIKE LOWER(CONCAT('%', :search, '%'))) " +
             "AND (:location IS NULL OR LOWER(h.location) LIKE LOWER(CONCAT('%', :location, '%'))) " +
             "AND (:category IS NULL OR " +
-            "     (JSON_VALUE(h.categories, CONCAT('$.', :category)) IS NOT NULL AND " +
-            "      JSON_VALUE(h.categories, CONCAT('$.', :category)) BETWEEN :minPrice AND :maxPrice)) " +
+            "     (JSON_UNQUOTE(JSON_EXTRACT(h.categories, CONCAT('$.', :category))) IS NOT NULL AND " +
+            "      CAST(JSON_UNQUOTE(JSON_EXTRACT(h.categories, CONCAT('$.', :category))) AS DECIMAL) BETWEEN :minPrice AND :maxPrice)) " +
             "AND h.capacity BETWEEN :minCapacity AND :maxCapacity",
             nativeQuery = true)
     Page<Hall> findAll(Pageable pageable,

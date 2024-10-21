@@ -191,6 +191,7 @@ public class RecommendationService {
                     .user(user)
                     .hall(hall)
                     .rating(rating.getRating())
+                    .comment(rating.getComment())
                     .build();
             userHallRatingsRepository.save(newRating);
         }
@@ -204,6 +205,7 @@ public class RecommendationService {
 
         return new GeneralResponse("Rating saved successfully");
     }
+
 
 
 
