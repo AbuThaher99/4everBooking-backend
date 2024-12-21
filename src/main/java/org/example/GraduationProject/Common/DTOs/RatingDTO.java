@@ -14,4 +14,5 @@ public class RatingDTO {
     private Long hallId;
     private double rating;
     private String comment;
+    private Long reservationId;
 }

@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -93,33 +94,107 @@ public class HallService {
     }
 
     @Transactional
-    public PaginationDTO<Hall> getAll(int page, int size, String search, String location, Double minPrice, Double maxPrice, Integer minCapacity, Integer maxCapacity, String category) {
+    public PaginationDTO<Hall> getAll(int page,
+                                      int size,
+                                      String search,
+                                      String location,
+                                      Double minPrice,
+                                      Double maxPrice,
+                                      Integer minCapacity,
+                                      Integer maxCapacity,
+                                      String category,
+                                      LocalDate startDate,
+                                      LocalDate endDate,
+                                      boolean sortByRecommendation,
+                                      Long userId,
+                                      boolean filterByProximity,
+                                      Double latitude,
+                                      Double longitude,
+                                      double radius,
+                                      boolean sortByPrice) {
+        // Default the page to 1 if an invalid value is provided
         if (page < 1) {
             page = 1;
         }
+
+        // Create Pageable instance
         Pageable pageable = PageRequest.of(page - 1, size);
 
+        // Nullify empty string inputs
         if (search != null && search.isEmpty()) {
             search = null;
         }
         if (location != null && location.isEmpty()) {
             location = null;
         }
+
+        // Set default values for min and max price if not provided
         if (minPrice == null) {
             minPrice = 0.0;
         }
         if (maxPrice == null) {
             maxPrice = Double.MAX_VALUE;
         }
+
+        // Set default values for min and max capacity if not provided
         if (minCapacity == null) {
-            minCapacity = 0; // Set to zero or an appropriate default value
+            minCapacity = 0;
         }
         if (maxCapacity == null) {
-            maxCapacity = Integer.MAX_VALUE; // Set to maximum possible value
+            maxCapacity = Integer.MAX_VALUE;
         }
 
-        Page<Hall> hallPage = hallRepository.findAll(pageable, search, location, minPrice, maxPrice, minCapacity, maxCapacity, category);
+        // Convert LocalDate to LocalDateTime
+        LocalDateTime startDateTime = (startDate != null) ? startDate.atStartOfDay() : LocalDateTime.MIN;
+        LocalDateTime endDateTime = (endDate != null) ? endDate.atTime(23, 59, 59) : LocalDateTime.MAX;
 
+        Page<Hall> hallPage;
+
+        if (sortByRecommendation) {
+            // If userId is null, throw an exception for recommendations
+            if (userId == null) {
+                throw new IllegalArgumentException("User ID must be provided for recommendations.");
+            }
+
+            // Fetch recommended halls
+            hallPage = hallRepository.findRecommendedHalls(pageable, userId);
+        } else if (filterByProximity) {
+            // If latitude or longitude is null, handle gracefully
+            if (latitude == null || longitude == null) {
+                throw new IllegalArgumentException("Latitude and longitude must be provided for proximity search.");
+            }
+
+            // Query halls near the provided location
+            hallPage = hallRepository.findHallsNearLocation(pageable, latitude, longitude, radius);
+        } else if (sortByPrice) {
+            // Sort halls by the price of the selected category
+            if (category == null || category.isEmpty()) {
+                throw new IllegalArgumentException("Category must be provided for sorting by price.");
+            }
+
+            // Fetch halls sorted by the price of the selected category
+            hallPage = hallRepository.findAllSortedByCategoryPrice(pageable, category);
+            for(int i = 0 ; i< hallPage.getContent().size() ; i++){
+                System.out.println(hallPage.getContent().get(i).getId());
+            }
+        } else {
+            // Fetch default filtered halls
+            hallPage = hallRepository.findAll(
+                    pageable,
+                    search,
+                    location,
+                    minPrice,
+                    maxPrice,
+                    minCapacity,
+                    maxCapacity,
+                    category,
+                    startDateTime,
+                    endDateTime
+            );
+        }
+
+
+        // Prepare the PaginationDTO
         PaginationDTO<Hall> paginationDTO = new PaginationDTO<>();
         paginationDTO.setTotalElements(hallPage.getTotalElements());
         paginationDTO.setTotalPages(hallPage.getTotalPages());
@@ -130,6 +205,7 @@ public class HallService {
 
         return paginationDTO;
     }
+
 
 
 
@@ -231,12 +307,22 @@ public class HallService {
         }
 
         for (Map.Entry<String, Object> entry : reservationDTO.getServices().entrySet()) {
-            if (entry.getValue() instanceof Integer) {
-                totalPrice += (double) ((Integer) entry.getValue());
+            Object value = entry.getValue();
+            if (value instanceof Integer) {
+                totalPrice += ((Integer) value).doubleValue(); // Convert Integer to double
+            } else if (value instanceof Double) {
+                totalPrice += (Double) value; // Directly use Double
+            } else if (value instanceof String) {
+                try {
+                    totalPrice += Double.parseDouble((String) value); // Convert String to double
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException("Invalid value for service: " + entry.getKey() + ". Expected a number.");
+                }
             } else {
-                totalPrice += (double) entry.getValue();
+                throw new IllegalArgumentException("Unsupported value type for service: " + entry.getKey());
             }
         }
+
 
         Reservations reservations = Reservations.builder()
                 .date(reservationDTO.getTime())
@@ -404,4 +490,38 @@ public class HallService {
         hallRepository.save(hall);
         return GeneralResponse.builder().message("Hall processed successfully").build();
     }
+
+    public String getHallsbyCapacity(int capacity, boolean isArabic) {
+        StringBuilder response = new StringBuilder();
+        List<Hall> halls = hallRepository.findByCapacity(capacity);
+
+        if (halls.isEmpty()) {
+            return isArabic ? "لا توجد قاعات متاحة بهذه السعة." : "No halls available with the specified capacity.";
+        }
+
+        if (isArabic) {
+            response.append("إليك قائمة القاعات المتاحة بسعة ").append(capacity).append(":\n\n");
+            for (Hall hall : halls) {
+                response.append("• ").append(hall.getName()).append("\n")
+                        .append("   - الموقع: ").append(hall.getLocation()).append("\n")
+                        .append("   - المميزات: ").append(hall.getServices()).append("\n\n");
+            }
+            response.append("هل تحتاج إلى مساعدة أخرى؟");
+        } else {
+            response.append("Here is a list of available halls with a capacity of ").append(capacity).append(":\n\n");
+            for (Hall hall : halls) {
+                response.append("• ").append(hall.getName()).append("\n")
+                        .append("   - Location: ").append(hall.getLocation()).append("\n")
+                        .append("   - Amenities: ").append(hall.getServices()).append("\n\n");
+            }
+            response.append("Do you need any further assistance?");
+        }
+
+        return response.toString();
+    }
+
+
+
+
+
 }

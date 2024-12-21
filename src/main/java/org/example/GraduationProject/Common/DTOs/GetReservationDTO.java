@@ -14,6 +14,8 @@ import java.util.Map;
 @AllArgsConstructor
 @NoArgsConstructor
 public class GetReservationDTO {
+    private Long id;
+    private Long hallId;
     private LocalDateTime time;
     @Convert(converter = MapToJsonConverter.class)
     private Map<String ,Object> services;

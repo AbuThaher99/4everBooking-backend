@@ -21,9 +21,12 @@ import org.example.GraduationProject.Core.Servecies.AuthenticationService;
 import org.example.GraduationProject.Core.Servecies.HallService;
 import org.example.GraduationProject.WebApi.Exceptions.UserNotFoundException;
 import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -73,13 +76,25 @@ public class WhiteListController {
                                       @RequestParam(defaultValue = "10000000") Double maxPrice,
                                       @RequestParam(defaultValue = "0") Integer minCapacity,
                                       @RequestParam(defaultValue = "2147483647") Integer maxCapacity,
-                                      @RequestParam(required = false) HallCategory category) {
+                                      @RequestParam(required = false) HallCategory category,
+                                      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                                      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+                                      @RequestParam(defaultValue = "false") boolean sortByRecommendation,
+                                      @RequestParam(required = false) Long userId,
+                                      @RequestParam(defaultValue = "false") Boolean filterByProximity,
+                                      @RequestParam(required = false) Double latitude,
+                                      @RequestParam(required = false) Double longitude,
+                                      @RequestParam(defaultValue = "15") double radius,
+                                      @RequestParam(defaultValue = "false") Boolean sortByPrice )  {
 
         // Convert the category to a string if it's provided
         String categoryStr = (category != null) ? category.name() : null;
 
-        return hallService.getAll(page, size, search, location, minPrice, maxPrice, minCapacity, maxCapacity, categoryStr);
+        // Call the service method with the added date range parameters
+        return hallService.getAll(page, size, search, location, minPrice, maxPrice, minCapacity, maxCapacity, categoryStr, startDate, endDate, sortByRecommendation, userId, filterByProximity, latitude, longitude, radius,sortByPrice);
     }
+
+
 
 
 

@@ -32,6 +32,7 @@ public class SecurityConfiguration {
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/whitelist/**","/resetPasswordPage" ,
+            "/chatbot/**",
             "/static/**", "/HallImage/**","/ProfileImages/**","/Pdf/**", "/Chart/**","/proofHalls/**"
            };
 
