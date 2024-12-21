@@ -38,7 +38,12 @@ spring:
     password: '#AbuThaher12345'
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
-    url: jdbc:mysql://localhost:3306/hallbooking
+    url: jdbc:mysql://127.0.0.1:3306/hallbooking
+  jackson:
+    time-zone: UTC  # Added time-zone configuration
+  cache:
+      type: simple  # Added caching configuration
+
 logging:
   level:
     com:
@@ -50,3 +55,10 @@ server:
     resources:
       cache:
         period: 0
+openai:
+  api:
+    key: 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
+    url: https://api.openai.com/v1/chat/completions
+  model:
+    name: ft:gpt-4o-mini-2024-07-18:personal:4everbooking:ANowPyo9
+

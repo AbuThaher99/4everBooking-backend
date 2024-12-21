@@ -12,6 +12,7 @@ import org.example.GraduationProject.Common.Entities.Reservations;
 import org.example.GraduationProject.Core.Repsitories.FileDataRepository;
 import org.example.GraduationProject.Core.Repsitories.HallOwnerRepository;
 import org.example.GraduationProject.Core.Repsitories.HallRepository;
+import org.example.GraduationProject.Core.Repsitories.reservationsRepository;
 import org.example.GraduationProject.WebApi.Exceptions.UserNotFoundException;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
@@ -26,12 +27,14 @@ import org.jfree.chart.renderer.category.BarRenderer;
 import org.jfree.data.category.DefaultCategoryDataset;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.cache.annotation.Cacheable;
 
 import java.awt.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.List;
 
@@ -52,6 +55,7 @@ public class StorageService {
     private final FileDataRepository fileDataRepository;
     private final HallRepository hallRepository;
     private final HallOwnerRepository hallOwnerRepository;
+    private final reservationsRepository reservationsRepository;
 
     final String baseUrl = "https://firebasestorage.googleapis.com/v0/b/graduationproject-df4b7.appspot.com/o/";
 
@@ -465,7 +469,25 @@ public class StorageService {
         }
     }
 
-    public String generateHallReservationReport(Long ownerId, String headerHex, String evenRowHex, String oddRowHex) throws UserNotFoundException, IOException, DocumentException {
+    public String generateHallReservationReport(Long ownerId, String headerHex, String evenRowHex, String oddRowHex)
+            throws UserNotFoundException, IOException, DocumentException {
+
+        // Fetch all hall IDs owned by the specific owner
+        List<Long> hallIds = hallRepository.findHallIdsByOwnerId(ownerId);
+
+        // Fetch the latest reservation update timestamp for this owner
+        LocalDateTime latestUpdate = reservationsRepository.findLatestReservationUpdateForOwner(hallIds);
+
+        // Generate the report, using a specific cache key that includes the update timestamp
+        return generateReportForOwner(ownerId, headerHex, evenRowHex, oddRowHex, latestUpdate);
+    }
+
+
+    @Cacheable(value = "hallReports", key = "'hallReport_' + #ownerId + '_' + #latestUpdate")
+    public String generateReportForOwner(Long ownerId, String headerHex, String evenRowHex, String oddRowHex
+            , LocalDateTime latestUpdate)
+            throws UserNotFoundException, IOException, DocumentException {
+
         hallOwnerRepository.findById(ownerId)
                 .orElseThrow(() -> new UserNotFoundException("Owner not found"));
 
@@ -473,7 +495,7 @@ public class StorageService {
         BaseColor evenRowColor = hexToBaseColor(evenRowHex);
         BaseColor oddRowColor = hexToBaseColor(oddRowHex);
 
-        String fileName = "HallReport_" + ownerId + "_" + System.currentTimeMillis() + ".pdf";
+        String fileName = "HallReport_" + ownerId + "_" + latestUpdate.toString().replace(":", "-") + ".pdf";
 
         Document document = new Document(PageSize.A4, 36, 36, 54, 54);
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -496,7 +518,8 @@ public class StorageService {
 
             List<Reservations> reservations = hallRepository.findByHallId(hall.getId());
             if (reservations.isEmpty()) {
-                document.add(new Paragraph("No reservations found for this hall.", new Font(Font.FontFamily.TIMES_ROMAN, 12, Font.ITALIC)));
+                document.add(new Paragraph("No reservations found for this hall.",
+                        new Font(Font.FontFamily.TIMES_ROMAN, 12, Font.ITALIC)));
             } else {
 
                 document.add(Chunk.NEWLINE);

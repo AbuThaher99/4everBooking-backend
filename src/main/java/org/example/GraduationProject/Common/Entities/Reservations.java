@@ -9,6 +9,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.example.GraduationProject.Common.Converters.MapToJsonConverter;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.Date;
@@ -57,5 +58,19 @@ public class Reservations extends BaseEntity{
     @Column(name = "invoice" , nullable = false)
     @NotNull(message = "Invoice cannot be Null")
     private String invoice;
+
+    @Column(name = "isNotificationSent", nullable = false)
+    @Builder.Default
+    private boolean isNotificationSent = false;
+
+    @Column(name = "last_modified", nullable = false)
+    @UpdateTimestamp
+    private LocalDateTime lastModified;
+
+    // boolean flag to mark if the reservation is rated by the customer
+    @Column(name = "isRated", nullable = false)
+    @Builder.Default
+    private boolean isRated = false;
+
 
 }

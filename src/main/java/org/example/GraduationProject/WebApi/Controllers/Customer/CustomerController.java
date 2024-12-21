@@ -61,8 +61,9 @@ public class CustomerController  extends SessionManagement {
 
 
     @GetMapping("/recommendhalls")
-    public List<Hall> recommendHallsForUser(@AuthenticationPrincipal User user) {
-        return recommendationService.recommendHalls(user);
+    public List<Hall> recommendHallsForUser(@AuthenticationPrincipal User user ,@RequestParam(defaultValue ="5") int size) {
+        recommendationService.saveRecommendations(user,Integer.MAX_VALUE);
+        return recommendationService.recommendHalls(user,size);
     }
      @PutMapping("/rateHall")
     public GeneralResponse rateHall(@RequestBody RatingDTO ratingDTO) throws UserNotFoundException {
