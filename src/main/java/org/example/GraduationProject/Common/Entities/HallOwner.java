@@ -37,4 +37,8 @@ public class HallOwner extends BaseEntity{
     @JsonBackReference("hallOwnerUser")
     private User user;
 
+    @Column(name = "connectedAccountId", nullable = true)
+    private String connectedAccountId = null;
+
+
 }

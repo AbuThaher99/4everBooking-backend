@@ -23,4 +23,5 @@ public class GetReservationDTO {
     private String Category;
     private Double totalPrice;
     private String hallName;
+    private boolean isRated;
 }

@@ -19,6 +19,7 @@ import org.example.GraduationProject.Common.Responses.AuthenticationResponse;
 import org.example.GraduationProject.Common.Responses.GeneralResponse;
 import org.example.GraduationProject.Core.Servecies.AuthenticationService;
 import org.example.GraduationProject.Core.Servecies.HallService;
+import org.example.GraduationProject.Core.Servecies.PaymentService;
 import org.example.GraduationProject.WebApi.Exceptions.UserNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -37,6 +38,7 @@ import java.util.stream.Collectors;
 public class WhiteListController {
     private final AuthenticationService authenticationService;
     private final HallService hallService;
+    private final PaymentService paymentService;
     @Operation(summary = "Register a new customer")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Customer registered successfully",
@@ -134,5 +136,9 @@ public class WhiteListController {
         List<Integer> reservedDays = hallService.getReservedDays(hallId, year, month);
         return ResponseEntity.ok(reservedDays);
     }
-
+    @PostMapping("/createHallOwnerStripeAccount/{userId}")
+    public String createHallOwnerStripeAccount(@PathVariable Long userId) throws Exception {
+      String url =  paymentService.createConnectedAccount(userId);
+        return url;
+    }
 }
