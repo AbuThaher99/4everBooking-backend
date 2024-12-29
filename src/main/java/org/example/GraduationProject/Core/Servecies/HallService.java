@@ -424,6 +424,34 @@ public class HallService {
         return new ArrayList<>(reservedDays);
     }
 
+    public List<Map<Integer, List<Integer>>> getReservedDaysForYear(Long hallId, int year) {
+        List<Map<Integer, List<Integer>>> yearReservedDays = new ArrayList<>();
+
+        for (int month = 1; month <= 12; month++) {
+            List<Reservations> reservations = hallRepository.findReservationsInMonth(hallId, year, month);
+            Set<Integer> reservedDays = new HashSet<>();
+
+            for (Reservations reservation : reservations) {
+                LocalDateTime start = reservation.getDate();
+                LocalDateTime end = reservation.getEndDate() != null ? reservation.getEndDate() : start;
+
+                while (!start.isAfter(end)) {
+                    if (start.getYear() == year && start.getMonthValue() == month) {
+                        reservedDays.add(start.getDayOfMonth());
+                    }
+                    start = start.plusDays(1);
+                }
+            }
+
+            Map<Integer, List<Integer>> monthData = new HashMap<>();
+            monthData.put(month, new ArrayList<>(reservedDays));
+            yearReservedDays.add(monthData);
+        }
+
+        return yearReservedDays;
+    }
+
+
     public PaginationDTO<Hall> getDeletedHallsByHallOwner(int page, int size, Long hallOwnerId) throws UserNotFoundException {
         hallOwnerRepository.findById(hallOwnerId).orElseThrow(() ->
                 new UserNotFoundException("Hall Owner not found with id: " + hallOwnerId) );
@@ -520,6 +548,69 @@ public class HallService {
         return response.toString();
     }
 
+
+    public String getConnectedAccountIdByHallId(Long hallId) throws UserNotFoundException {
+        return hallRepository.findConnectedAccountIdByHallId(hallId)
+                .orElseThrow(() -> new UserNotFoundException("No connectedAccountId found for Hall ID: " + hallId));
+    }
+
+    public GeneralResponse RejectHall(Long hallId, String comment) throws UserNotFoundException, MessagingException {
+        // Retrieve the hall from the repository
+        Hall hall = hallRepository.findById(hallId).orElseThrow(() ->
+                new UserNotFoundException("Hall not found with id: " + hallId)
+        );
+
+        // Get the hall owner
+        HallOwner hallOwner = hall.getHallOwner();
+        String ownerEmail = hallOwner.getUser().getEmail();
+        String ownerName = hallOwner.getUser().getFirstName();
+        String ownerLastName = hallOwner.getUser().getLastName();
+        String ownerFullName = ownerName + " " + ownerLastName;
+        String hallName = hall.getName();
+        String hallLocation = hall.getLocation();
+
+        // Delete the hall
+        hallRepository.deleteHallById(hallId);
+
+        // Save any changes to the hall (if required)
+        hallRepository.save(hall);
+
+        // Send email to the hall owner
+        String subject = "Your Hall Application Has Been Rejected";
+
+        StringBuilder emailContent = new StringBuilder();
+        emailContent.append("<!DOCTYPE html>")
+                .append("<html>")
+                .append("<head>")
+                .append("<style>")
+                .append("body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f9f9f9; margin: 0; padding: 0; }")
+                .append(".email-container { max-width: 600px; margin: 20px auto; background: #ffffff; padding: 20px; border: 1px solid #ddd; border-radius: 5px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }")
+                .append(".email-header { font-size: 20px; font-weight: bold; color: #444; margin-bottom: 20px; }")
+                .append(".email-body { font-size: 16px; color: #555; }")
+                .append(".email-footer { margin-top: 20px; font-size: 14px; color: #888; text-align: center; border-top: 1px solid #ddd; padding-top: 10px; }")
+                .append("</style>")
+                .append("</head>")
+                .append("<body>")
+                .append("<div class='email-container'>")
+                .append("<div class='email-header'>Hall Rejection Notification</div>")
+                .append("<div class='email-body'>")
+                .append("<p>Dear <strong>").append(ownerFullName).append("</strong>,</p>")
+                .append("<p>We regret to inform you that your hall application for <strong>").append(hallName).append("</strong>, located at <strong>").append(hallLocation).append("</strong>, has been rejected.</p>")
+                .append("<p><strong>Reason:</strong> ").append(comment).append("</p>")
+                .append("<p>If you have any questions, please contact our support team.</p>")
+                .append("<p>Best regards,</p>")
+                .append("<p>The Management Team</p>")
+                .append("</div>")
+                .append("<div class='email-footer'>&copy; 2024 4everBooking. All rights reserved.</div>")
+                .append("</div>")
+                .append("</body>")
+                .append("</html>");
+
+        // Assuming you have an emailService with a sendEmail method
+        emailService.sentNotificationEmail(ownerEmail, subject, emailContent.toString());
+
+        return GeneralResponse.builder().message("Hall rejected successfully").build();
+    }
 
 
 

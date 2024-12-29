@@ -136,6 +136,13 @@ public class WhiteListController {
         List<Integer> reservedDays = hallService.getReservedDays(hallId, year, month);
         return ResponseEntity.ok(reservedDays);
     }
+    @GetMapping("/reserved-days-years/{hallId}")
+    public ResponseEntity<List<Map<Integer, List<Integer>>>> getReservedDaysForYear(
+            @PathVariable Long hallId,
+            @RequestParam int year) {
+        List<Map<Integer, List<Integer>>> reservedDays = hallService.getReservedDaysForYear(hallId, year);
+        return ResponseEntity.ok(reservedDays);
+    }
     @PostMapping("/createHallOwnerStripeAccount/{userId}")
     public String createHallOwnerStripeAccount(@PathVariable Long userId) throws Exception {
       String url =  paymentService.createConnectedAccount(userId);

@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -102,4 +103,27 @@ public class AdminController extends SessionManagement {
         return hallService.processHall(id);
     }
 
+    @GetMapping("/DeletedUsers")
+    public PaginationDTO<User> getAllDeletedUsers(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "10") int size, HttpServletRequest httpServletRequest) throws UserNotFoundException {
+        String token = authenticationService.extractToken(httpServletRequest);
+        User loggedInUser = authenticationService.extractUserFromToken(token);
+        validateLoggedInAdmin(loggedInUser);
+        return authenticationService.GetAllDeletedUsers(page,size);
+    }
+
+    @PutMapping("/restoreUser/{id}")
+    public GeneralResponse restoreUser(@PathVariable Long id, HttpServletRequest httpServletRequest) throws UserNotFoundException {
+        String token = authenticationService.extractToken(httpServletRequest);
+        User loggedInUser = authenticationService.extractUserFromToken(token);
+        validateLoggedInAdmin(loggedInUser);
+        return authenticationService.RestoreUser(id);
+    }
+
+    @DeleteMapping("/rejectHall/{id}")
+    public GeneralResponse rejectHall(@PathVariable Long id,@RequestBody String comment , HttpServletRequest httpServletRequest) throws UserNotFoundException, MessagingException {
+        String token = authenticationService.extractToken(httpServletRequest);
+        User loggedInUser = authenticationService.extractUserFromToken(token);
+        validateLoggedInAdmin(loggedInUser);
+        return hallService.RejectHall(id,comment);
+    }
 }

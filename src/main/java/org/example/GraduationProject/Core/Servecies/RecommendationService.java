@@ -34,7 +34,7 @@ public class RecommendationService {
 
     public List<Hall> recommendHalls(User user, int size) {
         // Fetch all halls
-        List<Hall> allHalls = hallRepository.findAll();
+        List<Hall> allHalls = hallRepository.findAllHalls();
         System.out.println("Total halls in repository: " + allHalls.size());
 
         // Fetch all user-hall ratings

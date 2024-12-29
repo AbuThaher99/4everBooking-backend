@@ -264,15 +264,13 @@ public class StorageService {
 
         String currentImages = hall.getImage();
 
-        String decodedImageUrl = java.net.URLDecoder.decode(imageUrl, "UTF-8");
-        String decodedCurrentImages = java.net.URLDecoder.decode(currentImages, "UTF-8");
-
-        if (decodedCurrentImages.contains(decodedImageUrl)) {
-            String updatedImages = removeImageFromString(decodedCurrentImages, decodedImageUrl);
+        // Ensure URLs are treated consistently
+        if (currentImages.contains(imageUrl)) {
+            String updatedImages = removeImageFromString(currentImages, imageUrl);
             hall.setImage(updatedImages);
             hallRepository.save(hall);
 
-            deleteFileFromFirebase(decodedImageUrl);
+            deleteFileFromFirebase(imageUrl);
         } else {
             throw new IllegalArgumentException("Image not found in hall images");
         }
@@ -296,7 +294,8 @@ public class StorageService {
 
     public void deleteFileFromFirebase(String imageUrl) {
         try {
-            String filePath = imageUrl.replace(baseUrl, "").replaceAll("%2F", "/").split("\\?")[0];
+            // Convert to file path as Firebase expects
+            String filePath = imageUrl.replace(baseUrl, "").replace("%2F", "/").split("\\?")[0];
 
             Bucket bucket = StorageClient.getInstance().bucket();
             Blob blob = bucket.get(filePath);
@@ -316,6 +315,7 @@ public class StorageService {
             System.out.println("Error occurred while trying to delete the file from Firebase.");
         }
     }
+
 
 
     public String uploadMultiImageToFirebase(MultipartFile[] files) throws IOException {
