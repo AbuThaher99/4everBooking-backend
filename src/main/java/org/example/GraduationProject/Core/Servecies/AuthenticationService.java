@@ -293,7 +293,7 @@ public class AuthenticationService  {
                 .verified(false)
                 .build();
         emailRepository.save(emailEntity);
-        String verificationUrl = "https://website-4everbooking-backend99-461f6fb275e9.herokuapp.com/resetPasswordPage?verificationCode=" + verificationCode + "&email=" + email;
+        String verificationUrl = "http://localhost:8080/resetPasswordPage?verificationCode=" + verificationCode + "&email=" + email;
         emailService.sendVerificationEmail(email, "Email Verification", verificationUrl);
     }
 
@@ -351,6 +351,35 @@ public class AuthenticationService  {
         userRepository.save(user);
         return GeneralResponse.builder()
                 .message("Image uploaded successfully")
+                .build();
+    }
+
+    @Transactional
+    public PaginationDTO<User> GetAllDeletedUsers(int page, int size) {
+        if (page < 1) {
+            page = 1;
+        }
+
+        // Create Pageable instance
+        Pageable pageable = PageRequest.of(page - 1, size);
+        Page<User> users = userRepository.findAllDeletedUsers(pageable);
+        PaginationDTO<User> paginationDTO = new PaginationDTO<>();
+        paginationDTO.setTotalElements(users.getTotalElements());
+        paginationDTO.setTotalPages(users.getTotalPages());
+        paginationDTO.setSize(users.getSize());
+        paginationDTO.setNumber(users.getNumber() + 1);
+        paginationDTO.setNumberOfElements(users.getNumberOfElements());
+        paginationDTO.setContent(users.getContent());
+        return paginationDTO;
+    }
+
+    public GeneralResponse RestoreUser(Long id) throws UserNotFoundException {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        user.setDeleted(false);
+        userRepository.save(user);
+        return GeneralResponse.builder()
+                .message("User restored successfully")
                 .build();
     }
 }

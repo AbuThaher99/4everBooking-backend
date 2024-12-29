@@ -57,8 +57,8 @@ server:
         period: 0
 openai:
   api:
-    key: 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
+    key: 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
     url: https://api.openai.com/v1/chat/completions
   model:
-    name: ft:gpt-4o-mini-2024-07-18:personal:4everbooking:ANowPyo9
+    name: ft:gpt-3.5-turbo-0125:personal::AiPaoD7j
 

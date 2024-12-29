@@ -103,4 +103,15 @@ public class CustomerController  extends SessionManagement {
             return ResponseEntity.status(500).body(null);
         }
     }
+
+
+    @GetMapping("/connectedAccountId/{hallId}")
+    public ResponseEntity<String> getConnectedAccountId(@PathVariable Long hallId) {
+        try {
+            String connectedAccountId = hallService.getConnectedAccountIdByHallId(hallId);
+            return ResponseEntity.ok(connectedAccountId);
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.status(404).body(e.getMessage());
+        }
+    }
 }

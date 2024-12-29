@@ -6,13 +6,16 @@ import org.example.GraduationProject.Common.Enums.HallCategory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 public interface HallRepository extends JpaRepository<Hall, Long> {
 
@@ -99,4 +102,21 @@ public interface HallRepository extends JpaRepository<Hall, Long> {
 
     @Query("SELECT h.id FROM Hall h WHERE h.hallOwner.id = :ownerId")
     List<Long> findHallIdsByOwnerId(@Param("ownerId") Long ownerId);
+
+    @Query("SELECT ho.connectedAccountId " +
+            "FROM Hall h " +
+            "JOIN h.hallOwner ho " +
+            "WHERE h.id = :hallId " +
+            "AND h.isDeleted = false " +
+            "AND h.isProcessed = true")
+    Optional<String> findConnectedAccountIdByHallId(@Param("hallId") Long hallId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Hall h WHERE h.id = :hallId")
+    void deleteHallById(@Param("hallId") Long hallId);
+
+    @Query("SELECT h FROM Hall h WHERE h.isDeleted = false AND h.isProcessed = true")
+    List<Hall> findAllHalls();
+
 }
